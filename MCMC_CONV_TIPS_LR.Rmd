@@ -1,0 +1,457 @@
+---
+title: "Followup 3 - MCMC_CONVERgence_LR"
+author: "Subbiah"
+output:
+  pdf_document: default
+  html_document: default
+---
+**Few tips for convergence when using bugs() in R2WinBUGS or in general MCMC.**
+<br>Illustrated with logistic regression model<br><br>
+**Before run the code<br>**
+* Make sure that bugs.directory is set properly <br>
+* Debug option is FALSE. Make it TRUE if needed<br><br><br>
+
+In each Example observe the kernal density of AGE<br>
+**Please aware that long chain may take some extra time - depends on your system<br><br>**
+
+
+**Example No 1: Short (500) and single Chain**
+```{r}
+require(R2WinBUGS)
+LR10RES<-function()
+{
+  for (i in 1:n) {
+    frac[i] ~ dbern(p[i])
+    S2[i]           <- equals(sex[i], 1) #<- one coded is used in analysis; ref category:0
+    logit(p[i]) <- alpha + b.sex*S2[i] + b.age*age[i]
+  }
+  alpha ~ dnorm(1,1.0E-4) # Prior for intercept
+  b.sex ~ dnorm(0.0,1.0E-4) # Prior for slope of sex
+  #b.age ~ dnorm(0.5,1.0E-2) # Prior for slope of age
+  b.age ~ dnorm(0.0,1.0E-4)
+}
+#Writing BUGS File 
+LR10RES_FILE<- file.path(tempdir(), "LR10RES.bug")
+write.model(LR10RES, LR10RES_FILE)
+dat_LR10RES<-list(
+sex=c(1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0,0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1,0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
+age= c(69, 57, 61, 60, 69, 74, 63, 68, 64, 53, 60, 58, 79, 56, 53, 74, 56, 76, 72,56, 66, 52, 77, 70, 69, 76, 72, 53, 69, 59, 73, 77, 55, 77, 68, 62, 56, 68, 70, 60,65, 55, 64, 75, 60, 67, 61, 69, 75, 68, 72, 71, 54, 52, 54, 50, 75, 59, 65, 60, 60, 57, 51, 51, 63, 57, 80, 52, 65, 72, 80, 73, 76, 79, 66, 51, 76, 75, 66, 75, 78, 70, 67, 51, 70, 71, 71, 74, 74, 60, 58, 55, 61, 65, 52, 68, 75, 52, 53, 70),
+frac=c(1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1,1, 0, 1, 1, 0, 0, 1, 0, 0, 1),n=100)
+frac = factor(dat_LR10RES$frac, levels=c(0,1))
+sex=factor(dat_LR10RES$sex, levels=c(0,1))
+ns=500  #Number of simulations in BUGS
+inits <- function()
+{
+  list(alpha=0, b.sex=1, b.age=1)
+  #list(alpha=0.5, b.sex=1.5, b.age=1.5)
+  
+}
+parameters <- c("alpha","b.sex","b.age") 
+post_LR10RES.sim <- bugs(dat_LR10RES, inits, parameters, model.file=LR10RES_FILE,n.chains=1, n.thin=1, n.iter=ns,bugs.directory="D:/WinBUGS14/",debug =FALSE,digits=3)
+```
+```{r, echo=FALSE}
+mmm=post_LR10RES.sim$sims.matrix
+par(mfrow=c(1,2))
+plot(density(mmm[,2]),main="Kernal Density",col=2,xlab="SEX") 
+plot(density(mmm[,3]),main="Kernal Density",col=3,xlab="AGE") 
+```
+
+
+
+**Example No 2: Long (5000) and single Chain**
+```{r}
+require(R2WinBUGS)
+LR10RES<-function()
+{
+  for (i in 1:n) {
+    frac[i] ~ dbern(p[i])
+    S2[i]           <- equals(sex[i], 1) #<- one coded is used in analysis; ref category:0
+    logit(p[i]) <- alpha + b.sex*S2[i] + b.age*age[i]
+  }
+  alpha ~ dnorm(1,1.0E-4) # Prior for intercept
+  b.sex ~ dnorm(0.0,1.0E-4) # Prior for slope of sex
+  #b.age ~ dnorm(0.5,1.0E-2) # Prior for slope of age
+  b.age ~ dnorm(0.0,1.0E-4)
+}
+#Writing BUGS File 
+LR10RES_FILE<- file.path(tempdir(), "LR10RES.bug")
+write.model(LR10RES, LR10RES_FILE)
+dat_LR10RES<-list(
+sex=c(1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0,0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1,0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
+age= c(69, 57, 61, 60, 69, 74, 63, 68, 64, 53, 60, 58, 79, 56, 53, 74, 56, 76, 72,56, 66, 52, 77, 70, 69, 76, 72, 53, 69, 59, 73, 77, 55, 77, 68, 62, 56, 68, 70, 60,65, 55, 64, 75, 60, 67, 61, 69, 75, 68, 72, 71, 54, 52, 54, 50, 75, 59, 65, 60, 60, 57, 51, 51, 63, 57, 80, 52, 65, 72, 80, 73, 76, 79, 66, 51, 76, 75, 66, 75, 78, 70, 67, 51, 70, 71, 71, 74, 74, 60, 58, 55, 61, 65, 52, 68, 75, 52, 53, 70),
+frac=c(1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1,1, 0, 1, 1, 0, 0, 1, 0, 0, 1),n=100)
+frac = factor(dat_LR10RES$frac, levels=c(0,1))
+sex=factor(dat_LR10RES$sex, levels=c(0,1))
+ns=5000  #Number of simulations in BUGS
+inits <- function()
+{
+  list(alpha=0, b.sex=1, b.age=1)
+  #list(alpha=0.5, b.sex=1.5, b.age=1.5)
+  
+}
+parameters <- c("alpha","b.sex","b.age") 
+post_LR10RES.sim <- bugs(dat_LR10RES, inits, parameters, model.file=LR10RES_FILE,n.chains=1, n.thin=1, n.iter=ns,bugs.directory="D:/WinBUGS14/",debug =FALSE,digits=3)
+```
+```{r, echo=FALSE}
+mmm=post_LR10RES.sim$sims.matrix
+par(mfrow=c(1,2))
+plot(density(mmm[,2]),main="Kernal Density",col=2,xlab="SEX") 
+plot(density(mmm[,3]),main="Kernal Density",col=3,xlab="AGE") 
+```
+
+
+
+**Example No 3: Long (25000) and single Chain**
+```{r}
+require(R2WinBUGS)
+LR10RES<-function()
+{
+  for (i in 1:n) {
+    frac[i] ~ dbern(p[i])
+    S2[i]           <- equals(sex[i], 1) #<- one coded is used in analysis; ref category:0
+    logit(p[i]) <- alpha + b.sex*S2[i] + b.age*age[i]
+  }
+  alpha ~ dnorm(1,1.0E-4) # Prior for intercept
+  b.sex ~ dnorm(0.0,1.0E-4) # Prior for slope of sex
+  #b.age ~ dnorm(0.5,1.0E-2) # Prior for slope of age
+  b.age ~ dnorm(0.0,1.0E-4)
+}
+#Writing BUGS File 
+LR10RES_FILE<- file.path(tempdir(), "LR10RES.bug")
+write.model(LR10RES, LR10RES_FILE)
+dat_LR10RES<-list(
+sex=c(1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0,0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1,0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
+age= c(69, 57, 61, 60, 69, 74, 63, 68, 64, 53, 60, 58, 79, 56, 53, 74, 56, 76, 72,56, 66, 52, 77, 70, 69, 76, 72, 53, 69, 59, 73, 77, 55, 77, 68, 62, 56, 68, 70, 60,65, 55, 64, 75, 60, 67, 61, 69, 75, 68, 72, 71, 54, 52, 54, 50, 75, 59, 65, 60, 60, 57, 51, 51, 63, 57, 80, 52, 65, 72, 80, 73, 76, 79, 66, 51, 76, 75, 66, 75, 78, 70, 67, 51, 70, 71, 71, 74, 74, 60, 58, 55, 61, 65, 52, 68, 75, 52, 53, 70),
+frac=c(1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1,1, 0, 1, 1, 0, 0, 1, 0, 0, 1),n=100)
+frac = factor(dat_LR10RES$frac, levels=c(0,1))
+sex=factor(dat_LR10RES$sex, levels=c(0,1))
+ns=25000  #Number of simulations in BUGS
+inits <- function()
+{
+  list(alpha=0, b.sex=1, b.age=1)
+  #list(alpha=0.5, b.sex=1.5, b.age=1.5)
+  
+}
+parameters <- c("alpha","b.sex","b.age") 
+post_LR10RES.sim <- bugs(dat_LR10RES, inits, parameters, model.file=LR10RES_FILE,n.chains=1, n.thin=1, n.iter=ns,bugs.directory="D:/WinBUGS14/",debug =FALSE,digits=3)
+```
+```{r, echo=FALSE}
+mmm=post_LR10RES.sim$sims.matrix
+par(mfrow=c(1,2))
+plot(density(mmm[,2]),main="Kernal Density",col=2,xlab="SEX") 
+plot(density(mmm[,3]),main="Kernal Density",col=3,xlab="AGE") 
+```
+
+
+
+**Example No 4: Long (25000) and single Chain but thin = 10**
+```{r}
+require(R2WinBUGS)
+LR10RES<-function()
+{
+  for (i in 1:n) {
+    frac[i] ~ dbern(p[i])
+    S2[i]           <- equals(sex[i], 1) #<- one coded is used in analysis; ref category:0
+    logit(p[i]) <- alpha + b.sex*S2[i] + b.age*age[i]
+  }
+  alpha ~ dnorm(1,1.0E-4) # Prior for intercept
+  b.sex ~ dnorm(0.0,1.0E-4) # Prior for slope of sex
+  #b.age ~ dnorm(0.5,1.0E-2) # Prior for slope of age
+  b.age ~ dnorm(0.0,1.0E-4)
+}
+#Writing BUGS File 
+LR10RES_FILE<- file.path(tempdir(), "LR10RES.bug")
+write.model(LR10RES, LR10RES_FILE)
+dat_LR10RES<-list(
+sex=c(1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0,0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1,0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
+age= c(69, 57, 61, 60, 69, 74, 63, 68, 64, 53, 60, 58, 79, 56, 53, 74, 56, 76, 72,56, 66, 52, 77, 70, 69, 76, 72, 53, 69, 59, 73, 77, 55, 77, 68, 62, 56, 68, 70, 60,65, 55, 64, 75, 60, 67, 61, 69, 75, 68, 72, 71, 54, 52, 54, 50, 75, 59, 65, 60, 60, 57, 51, 51, 63, 57, 80, 52, 65, 72, 80, 73, 76, 79, 66, 51, 76, 75, 66, 75, 78, 70, 67, 51, 70, 71, 71, 74, 74, 60, 58, 55, 61, 65, 52, 68, 75, 52, 53, 70),
+frac=c(1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1,1, 0, 1, 1, 0, 0, 1, 0, 0, 1),n=100)
+frac = factor(dat_LR10RES$frac, levels=c(0,1))
+sex=factor(dat_LR10RES$sex, levels=c(0,1))
+ns=25000  #Number of simulations in BUGS
+inits <- function()
+{
+  list(alpha=0, b.sex=1, b.age=1)
+  #list(alpha=0.5, b.sex=1.5, b.age=1.5)
+  
+}
+parameters <- c("alpha","b.sex","b.age") 
+post_LR10RES.sim <- bugs(dat_LR10RES, inits, parameters, model.file=LR10RES_FILE,n.chains=1, n.thin=10, n.iter=ns,bugs.directory="D:/WinBUGS14/",debug =FALSE,digits=3)
+```
+```{r, echo=FALSE}
+mmm=post_LR10RES.sim$sims.matrix
+par(mfrow=c(1,2))
+plot(density(mmm[,2]),main="Kernal Density",col=2,xlab="SEX") 
+plot(density(mmm[,3]),main="Kernal Density",col=3,xlab="AGE") 
+```
+
+
+
+**Example No 5: Long (50000) and single Chain but thin = 10**
+```{r}
+require(R2WinBUGS)
+LR10RES<-function()
+{
+  for (i in 1:n) {
+    frac[i] ~ dbern(p[i])
+    S2[i]           <- equals(sex[i], 1) #<- one coded is used in analysis; ref category:0
+    logit(p[i]) <- alpha + b.sex*S2[i] + b.age*age[i]
+  }
+  alpha ~ dnorm(1,1.0E-4) # Prior for intercept
+  b.sex ~ dnorm(0.0,1.0E-4) # Prior for slope of sex
+  #b.age ~ dnorm(0.5,1.0E-2) # Prior for slope of age
+  b.age ~ dnorm(0.0,1.0E-4)
+}
+#Writing BUGS File 
+LR10RES_FILE<- file.path(tempdir(), "LR10RES.bug")
+write.model(LR10RES, LR10RES_FILE)
+dat_LR10RES<-list(
+sex=c(1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0,0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1,0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
+age= c(69, 57, 61, 60, 69, 74, 63, 68, 64, 53, 60, 58, 79, 56, 53, 74, 56, 76, 72,56, 66, 52, 77, 70, 69, 76, 72, 53, 69, 59, 73, 77, 55, 77, 68, 62, 56, 68, 70, 60,65, 55, 64, 75, 60, 67, 61, 69, 75, 68, 72, 71, 54, 52, 54, 50, 75, 59, 65, 60, 60, 57, 51, 51, 63, 57, 80, 52, 65, 72, 80, 73, 76, 79, 66, 51, 76, 75, 66, 75, 78, 70, 67, 51, 70, 71, 71, 74, 74, 60, 58, 55, 61, 65, 52, 68, 75, 52, 53, 70),
+frac=c(1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1,1, 0, 1, 1, 0, 0, 1, 0, 0, 1),n=100)
+frac = factor(dat_LR10RES$frac, levels=c(0,1))
+sex=factor(dat_LR10RES$sex, levels=c(0,1))
+ns=50000  #Number of simulations in BUGS
+inits <- function()
+{
+  list(alpha=0, b.sex=1, b.age=1)
+  #list(alpha=0.5, b.sex=1.5, b.age=1.5)
+  
+}
+parameters <- c("alpha","b.sex","b.age") 
+post_LR10RES.sim <- bugs(dat_LR10RES, inits, parameters, model.file=LR10RES_FILE,n.chains=1, n.thin=10, n.iter=ns,bugs.directory="D:/WinBUGS14/",debug =FALSE,digits=3)
+```
+```{r, echo=FALSE}
+mmm=post_LR10RES.sim$sims.matrix
+par(mfrow=c(1,2))
+plot(density(mmm[,2]),main="Kernal Density",col=2,xlab="SEX") 
+plot(density(mmm[,3]),main="Kernal Density",col=3,xlab="AGE") 
+```
+
+
+
+**Example No 6: Long (50000) and two Chains but thin = 10**
+```{r}
+require(R2WinBUGS)
+LR10RES<-function()
+{
+  for (i in 1:n) {
+    frac[i] ~ dbern(p[i])
+    S2[i]           <- equals(sex[i], 1) #<- one coded is used in analysis; ref category:0
+    logit(p[i]) <- alpha + b.sex*S2[i] + b.age*age[i]
+  }
+  alpha ~ dnorm(1,1.0E-4) # Prior for intercept
+  b.sex ~ dnorm(0.0,1.0E-4) # Prior for slope of sex
+  #b.age ~ dnorm(0.5,1.0E-2) # Prior for slope of age
+  b.age ~ dnorm(0.0,1.0E-4)
+}
+#Writing BUGS File 
+LR10RES_FILE<- file.path(tempdir(), "LR10RES.bug")
+write.model(LR10RES, LR10RES_FILE)
+dat_LR10RES<-list(
+sex=c(1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0,0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1,0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
+age= c(69, 57, 61, 60, 69, 74, 63, 68, 64, 53, 60, 58, 79, 56, 53, 74, 56, 76, 72,56, 66, 52, 77, 70, 69, 76, 72, 53, 69, 59, 73, 77, 55, 77, 68, 62, 56, 68, 70, 60,65, 55, 64, 75, 60, 67, 61, 69, 75, 68, 72, 71, 54, 52, 54, 50, 75, 59, 65, 60, 60, 57, 51, 51, 63, 57, 80, 52, 65, 72, 80, 73, 76, 79, 66, 51, 76, 75, 66, 75, 78, 70, 67, 51, 70, 71, 71, 74, 74, 60, 58, 55, 61, 65, 52, 68, 75, 52, 53, 70),
+frac=c(1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1,1, 0, 1, 1, 0, 0, 1, 0, 0, 1),n=100)
+frac = factor(dat_LR10RES$frac, levels=c(0,1))
+sex=factor(dat_LR10RES$sex, levels=c(0,1))
+ns=50000  #Number of simulations in BUGS
+inits <- function()
+{
+  list(alpha=0, b.sex=1, b.age=1)
+  list(alpha=0.5, b.sex=1.5, b.age=1.5)
+  
+}
+parameters <- c("alpha","b.sex","b.age") 
+post_LR10RES.sim <- bugs(dat_LR10RES, inits, parameters, model.file=LR10RES_FILE,n.chains=2, n.thin=10, n.iter=ns,bugs.directory="D:/WinBUGS14/",debug =FALSE,digits=3)
+```
+```{r, echo=FALSE}
+mmm=post_LR10RES.sim$sims.matrix
+par(mfrow=c(1,2))
+plot(density(mmm[,2]),main="Kernal Density",col=2,xlab="SEX") 
+plot(density(mmm[,3]),main="Kernal Density",col=3,xlab="AGE") 
+```
+
+
+
+**Example No 7: Long (100000) and one Chain but thin = 10**
+```{r}
+require(R2WinBUGS)
+LR10RES<-function()
+{
+  for (i in 1:n) {
+    frac[i] ~ dbern(p[i])
+    S2[i]           <- equals(sex[i], 1) #<- one coded is used in analysis; ref category:0
+    logit(p[i]) <- alpha + b.sex*S2[i] + b.age*age[i]
+  }
+  alpha ~ dnorm(1,1.0E-4) # Prior for intercept
+  b.sex ~ dnorm(0.0,1.0E-4) # Prior for slope of sex
+  #b.age ~ dnorm(0.5,1.0E-2) # Prior for slope of age
+  b.age ~ dnorm(0.0,1.0E-4)
+}
+#Writing BUGS File 
+LR10RES_FILE<- file.path(tempdir(), "LR10RES.bug")
+write.model(LR10RES, LR10RES_FILE)
+dat_LR10RES<-list(
+sex=c(1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0,0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1,0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
+age= c(69, 57, 61, 60, 69, 74, 63, 68, 64, 53, 60, 58, 79, 56, 53, 74, 56, 76, 72,56, 66, 52, 77, 70, 69, 76, 72, 53, 69, 59, 73, 77, 55, 77, 68, 62, 56, 68, 70, 60,65, 55, 64, 75, 60, 67, 61, 69, 75, 68, 72, 71, 54, 52, 54, 50, 75, 59, 65, 60, 60, 57, 51, 51, 63, 57, 80, 52, 65, 72, 80, 73, 76, 79, 66, 51, 76, 75, 66, 75, 78, 70, 67, 51, 70, 71, 71, 74, 74, 60, 58, 55, 61, 65, 52, 68, 75, 52, 53, 70),
+frac=c(1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1,1, 0, 1, 1, 0, 0, 1, 0, 0, 1),n=100)
+frac = factor(dat_LR10RES$frac, levels=c(0,1))
+sex=factor(dat_LR10RES$sex, levels=c(0,1))
+ns=100000  #Number of simulations in BUGS
+inits <- function()
+{
+  list(alpha=0, b.sex=1, b.age=1)
+ #list(alpha=0.5, b.sex=1.5, b.age=1.5)
+  
+}
+parameters <- c("alpha","b.sex","b.age") 
+post_LR10RES.sim <- bugs(dat_LR10RES, inits, parameters, model.file=LR10RES_FILE,n.chains=1, n.thin=10, n.iter=ns,bugs.directory="D:/WinBUGS14/",debug =FALSE,digits=3)
+```
+```{r, echo=FALSE}
+mmm=post_LR10RES.sim$sims.matrix
+par(mfrow=c(1,2))
+plot(density(mmm[,2]),main="Kernal Density",col=2,xlab="SEX") 
+plot(density(mmm[,3]),main="Kernal Density",col=3,xlab="AGE") 
+```
+
+
+
+**Example No 8: Long (100000) and one Chain but thin = 100**
+```{r}
+require(R2WinBUGS)
+LR10RES<-function()
+{
+  for (i in 1:n) {
+    frac[i] ~ dbern(p[i])
+    S2[i]           <- equals(sex[i], 1) #<- one coded is used in analysis; ref category:0
+    logit(p[i]) <- alpha + b.sex*S2[i] + b.age*age[i]
+  }
+  alpha ~ dnorm(1,1.0E-4) # Prior for intercept
+  b.sex ~ dnorm(0.0,1.0E-4) # Prior for slope of sex
+  #b.age ~ dnorm(0.5,1.0E-2) # Prior for slope of age
+  b.age ~ dnorm(0.0,1.0E-4)
+}
+#Writing BUGS File 
+LR10RES_FILE<- file.path(tempdir(), "LR10RES.bug")
+write.model(LR10RES, LR10RES_FILE)
+dat_LR10RES<-list(
+sex=c(1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0,0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1,0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
+age= c(69, 57, 61, 60, 69, 74, 63, 68, 64, 53, 60, 58, 79, 56, 53, 74, 56, 76, 72,56, 66, 52, 77, 70, 69, 76, 72, 53, 69, 59, 73, 77, 55, 77, 68, 62, 56, 68, 70, 60,65, 55, 64, 75, 60, 67, 61, 69, 75, 68, 72, 71, 54, 52, 54, 50, 75, 59, 65, 60, 60, 57, 51, 51, 63, 57, 80, 52, 65, 72, 80, 73, 76, 79, 66, 51, 76, 75, 66, 75, 78, 70, 67, 51, 70, 71, 71, 74, 74, 60, 58, 55, 61, 65, 52, 68, 75, 52, 53, 70),
+frac=c(1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1,1, 0, 1, 1, 0, 0, 1, 0, 0, 1),n=100)
+frac = factor(dat_LR10RES$frac, levels=c(0,1))
+sex=factor(dat_LR10RES$sex, levels=c(0,1))
+ns=100000  #Number of simulations in BUGS
+inits <- function()
+{
+  list(alpha=0, b.sex=1, b.age=1)
+ #list(alpha=0.5, b.sex=1.5, b.age=1.5)
+  
+}
+parameters <- c("alpha","b.sex","b.age") 
+post_LR10RES.sim <- bugs(dat_LR10RES, inits, parameters, model.file=LR10RES_FILE,n.chains=1, n.thin=100, n.iter=ns,bugs.directory="D:/WinBUGS14/",debug =FALSE,digits=3)
+```
+```{r, echo=FALSE}
+mmm=post_LR10RES.sim$sims.matrix
+par(mfrow=c(1,2))
+plot(density(mmm[,2]),main="Kernal Density",col=2,xlab="SEX") 
+plot(density(mmm[,3]),main="Kernal Density",col=3,xlab="AGE") 
+```
+
+
+
+**Example No 9: Long (100000) and two Chains but thin = 100**
+```{r}
+require(R2WinBUGS)
+LR10RES<-function()
+{
+  for (i in 1:n) {
+    frac[i] ~ dbern(p[i])
+    S2[i]           <- equals(sex[i], 1) #<- one coded is used in analysis; ref category:0
+    logit(p[i]) <- alpha + b.sex*S2[i] + b.age*age[i]
+  }
+  alpha ~ dnorm(1,1.0E-4) # Prior for intercept
+  b.sex ~ dnorm(0.0,1.0E-4) # Prior for slope of sex
+  #b.age ~ dnorm(0.5,1.0E-2) # Prior for slope of age
+  b.age ~ dnorm(0.0,1.0E-4)
+}
+#Writing BUGS File 
+LR10RES_FILE<- file.path(tempdir(), "LR10RES.bug")
+write.model(LR10RES, LR10RES_FILE)
+dat_LR10RES<-list(
+sex=c(1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0,0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1,0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
+age= c(69, 57, 61, 60, 69, 74, 63, 68, 64, 53, 60, 58, 79, 56, 53, 74, 56, 76, 72,56, 66, 52, 77, 70, 69, 76, 72, 53, 69, 59, 73, 77, 55, 77, 68, 62, 56, 68, 70, 60,65, 55, 64, 75, 60, 67, 61, 69, 75, 68, 72, 71, 54, 52, 54, 50, 75, 59, 65, 60, 60, 57, 51, 51, 63, 57, 80, 52, 65, 72, 80, 73, 76, 79, 66, 51, 76, 75, 66, 75, 78, 70, 67, 51, 70, 71, 71, 74, 74, 60, 58, 55, 61, 65, 52, 68, 75, 52, 53, 70),
+frac=c(1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1,1, 0, 1, 1, 0, 0, 1, 0, 0, 1),n=100)
+frac = factor(dat_LR10RES$frac, levels=c(0,1))
+sex=factor(dat_LR10RES$sex, levels=c(0,1))
+ns=100000  #Number of simulations in BUGS
+inits <- function()
+{
+  list(alpha=0, b.sex=1, b.age=1)
+ list(alpha=0.5, b.sex=1.5, b.age=1.5)
+  
+}
+parameters <- c("alpha","b.sex","b.age") 
+post_LR10RES.sim <- bugs(dat_LR10RES, inits, parameters, model.file=LR10RES_FILE,n.chains=2, n.thin=100, n.iter=ns,bugs.directory="D:/WinBUGS14/",debug =FALSE,digits=3)
+```
+```{r, echo=FALSE}
+mmm=post_LR10RES.sim$sims.matrix
+par(mfrow=c(1,2))
+plot(density(mmm[,2]),main="Kernal Density",col=2,xlab="SEX") 
+plot(density(mmm[,3]),main="Kernal Density",col=3,xlab="AGE") 
+```
+
+
+
+**Example No 10: Long (100000) and One Chain but thin = 10 A prior change for the parameter Age**
+```{r}
+require(R2WinBUGS)
+LR10RES<-function()
+{
+  for (i in 1:n) {
+    frac[i] ~ dbern(p[i])
+    S2[i]           <- equals(sex[i], 1) #<- one coded is used in analysis; ref category:0
+    logit(p[i]) <- alpha + b.sex*S2[i] + b.age*age[i]
+  }
+  alpha ~ dnorm(1,1.0E-4) # Prior for intercept
+  b.sex ~ dnorm(0.0,1.0E-4) # Prior for slope of sex
+  b.age ~ dnorm(0.5,1.0E-2) # Prior for slope of age
+  #b.age ~ dnorm(0.0,1.0E-4)
+}
+#Writing BUGS File 
+LR10RES_FILE<- file.path(tempdir(), "LR10RES.bug")
+write.model(LR10RES, LR10RES_FILE)
+dat_LR10RES<-list(
+sex=c(1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1,1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0,0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1,0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
+age= c(69, 57, 61, 60, 69, 74, 63, 68, 64, 53, 60, 58, 79, 56, 53, 74, 56, 76, 72,56, 66, 52, 77, 70, 69, 76, 72, 53, 69, 59, 73, 77, 55, 77, 68, 62, 56, 68, 70, 60,65, 55, 64, 75, 60, 67, 61, 69, 75, 68, 72, 71, 54, 52, 54, 50, 75, 59, 65, 60, 60, 57, 51, 51, 63, 57, 80, 52, 65, 72, 80, 73, 76, 79, 66, 51, 76, 75, 66, 75, 78, 70, 67, 51, 70, 71, 71, 74, 74, 60, 58, 55, 61, 65, 52, 68, 75, 52, 53, 70),
+frac=c(1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1,1, 0, 1, 1, 0, 0, 1, 0, 0, 1),n=100)
+frac = factor(dat_LR10RES$frac, levels=c(0,1))
+sex=factor(dat_LR10RES$sex, levels=c(0,1))
+ns=100000  #Number of simulations in BUGS
+inits <- function()
+{
+  list(alpha=0, b.sex=1, b.age=1)
+ #list(alpha=0.5, b.sex=1.5, b.age=1.5)
+  
+}
+parameters <- c("alpha","b.sex","b.age") 
+post_LR10RES.sim <- bugs(dat_LR10RES, inits, parameters, model.file=LR10RES_FILE,n.chains=1, n.thin=10, n.iter=ns,bugs.directory="D:/WinBUGS14/",debug =FALSE,digits=3)
+```
+```{r, echo=FALSE}
+mmm=post_LR10RES.sim$sims.matrix
+par(mfrow=c(1,2))
+plot(density(mmm[,2]),main="Kernal Density",col=2,xlab="SEX") 
+plot(density(mmm[,3]),main="Kernal Density",col=3,xlab="AGE") 
+```
+
+
+
+***Possible questions***<br><br>
+Long single Chain?<br>
+Moderate multiple Chains?<br>
+Burn in, a concern?<br>
+Thin, a concern?<br>
+Prior, a concern?<br>
+computing time/memory], a concern?<br>
+Or All these matter?<br><br><br>
+**Remember from the developers of WinBUGS** 
+***"Beware: MCMC sampling can be dangerous!"***

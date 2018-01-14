@@ -1,0 +1,191 @@
+---
+title: "Extreme Observation - Fitting Gamma Disribution"
+author: "Subbiah"
+date: "10 January 2018"
+output: html_document
+---
+Extreme value observations are in general, asymmetric; it may be interested to study about the characteristics of tail rather than most common approach of concentrating the central part of distribution.
+
+This notes attempts fitting Gamma distribution for a skewed data set. A quick numerical and graphical summary is helpful in understanding asymmetry and tail behaviour. Mean Excess plot may be more useful than histogram
+
+
+```{r,echo=FALSE,message=FALSE, warning=FALSE}
+require(moments)
+require(evir)
+#--------------------------------------------------------
+ev_su=function(data)
+  {
+x1=summary(data) ; x2=var(data)
+x3=skewness(data); x4=kurtosis(data)
+Q1=quantile(data,0.25);Q2=quantile(data,0.50);Q3=quantile(data,0.75)
+maximum=max(data)
+GalSke=((Q3+Q1)-(2*Q2))/(Q3-Q1) ##galton skewness
+oct7=(quantile(data,7/8));oct5=quantile(data,5/8);oct3=quantile(data,3/8)
+oct1 =quantile(data,1/8);oct6=quantile(data,6/8);oct2= quantile(data,2/8)
+MoorKur=((oct7-oct5+oct3-oct1)/(oct6-oct2)) ##moors kurtosis
+su_re=rbind(Mean=x1[4],Median=x1[3],Variance=x2,maximum,skewness=x3,kurtosis=x4,GaltSke=GalSke,MooreKu=MoorKur)
+colnames(su_re)="Summary"
+su_re
+}
+#--------------------------------------------------------------------
+#DATA
+x<-c(44,	5,	17,	64,	58,	1,	52,	4,	277,	52,	7,	16,	6,	96,	51,	44,	19,	18,	83,	28,	167,	43,	12,	26,	64,	375,	14,	1,	50,	3,	40,	91,	2,	147,	65,	9,	88,	43,	24,	14,	65,	1,	53,	48,	6,	54,	21,	87,	145,	152,	20,	179,	35,	40,	74,	26,	44,	2,	1,	2,	2,	9,	78,	132,	83,	78,	14,	19,	19,	45,	103,	30,	1,	4,	1,	115,	3,	37,	15,	1,	36,	37,	55,	17,	42,	47,	93,	30,	31,	13,	89,	11,	7,	4,	39,	51,	79,	4,	33,	68,	14,	62,	3,	213,	8,	153,	100,	7,	24,	1,	67,	75,	50,	6,	5,	13,	112,	4,	2,	1,	47,	1,	4,	1,	17,	182,	39,	16,	1,	35,	28,	47,	45,	12,	1,	83,	8,	19,	91,	81,	14,	178,	40,	74,	45,	221,	130,	1,	52,	47,	55,	4,	9,	35,	28,	73,	48,	26,	110,	91,	122,	14,	42,	68,	60,	209,	10,	80,	29,	1,	191,	1,	202,	5,	72,	11,	115,	86,	34,	6,	23,	1,	1,	8,	36,	33,	400,	53,	120,	11,	44,	95,	13,	1,	7,	79,	15,	196,	4,	176,	13,	4,	130,	48,	153,	1,	5,	36,	30,	14,	13,	45,	226,	17,	5,	1,	1,	1,	83,	18,	1,	7,	120,	10,	19,	26,	11,	61,	122,	216,	1,	49)
+#--------------------------------------------------------------------
+round(ev_su(x),4)
+```
+
+
+**Associated plots are**
+
+
+```{r,echo=FALSE,message=FALSE, warning=FALSE}
+#plots
+par(mfrow=c(1,3))
+histogram=hist(x)
+ME=meplot(x,main="ME Plot")
+qplot(x, xi = 0, trim = NA, threshold = NA, line = TRUE,labels = TRUE, main="QQ Plot")
+```
+
+
+
+Tail distribution is studied using complementary cumulative distribution function. For testing goodness of fit, Cramer-Von-Mises (CVM) method related to extreme value observation is used beyond Kolmogorov-Smirnov (KS), Anderson-Darling (AD). 
+
+Parameters must be estimated before assessing goodness of fit tests. Method of moments (MOM), Maximum Likelihood estimation method (MLE) and Maximization of Goodness of Fit (MGE) method are considered here.
+
+The dataset considered for this study is extracted from the portal http://www.espncricinfo.com/ci/content/player/index.html; The game of cricket and its dynamic provides realization of extreme value observations especially in test cricket format. A batsman has utmost two innings to bat, and there is a better possibility of getting high scores. High scores like 100s, 200s or more enhance the rating and performance of players. 
+
+
+```{r setup, echo=FALSE,message=FALSE, warning=FALSE}
+require(fitdistrplus)
+require(actuar)
+require(goftest)
+#-----------------------------------------------------------------------------------
+ev_par_es=function(data)
+{
+#MLE
+MLE<-fitdist(data,"gamma")
+parameters=MLE$estimate
+par1=parameters[1]
+par2=1/parameters[2]
+resmle=rbind(par1,par2)
+#----------------------------------------------------------------------------------
+#MOM
+mom=fitdist(data,"gamma",method="mme")
+parameters=mom$estimate
+par3=parameters[1]
+par4=1/parameters[2]
+resmom=rbind(par3,par4)
+#----------------------------------------------------------------------------------
+#MGE_3 METHODS
+MGEKS=fitdist(data,"gamma",method="mge",gof="KS")
+MGEAD=fitdist(data,"gamma",method="mge",gof="AD")
+MGECVM=fitdist(data,"gamma",method="mge",gof="CvM")
+parameters1=MGEKS$estimate
+par5=parameters1[1]
+par6=1/parameters1[2]
+parameters2=MGEAD$estimate
+par7=parameters2[1]
+par8=1/parameters2[2]
+parameters3=MGECVM$estimate
+par9=parameters3[1]
+par10=1/parameters3[2]
+resMGEKS=rbind(par5,par6);resMGEAD=rbind(par7,par8);resMGECVM=rbind(par9,par10)
+#-------------------------------------------------------------------------------------
+fin_res=cbind(resmom,resmle,resMGEKS,resMGEAD,resMGECVM)
+row.names(fin_res)=c("Shape","Scale")
+colnames(fin_res)=c("MOM","MLE","MGEKS","MGEAD","MGECVM")
+fin_res
+}
+#--------------------------------------------------------------
+
+#GOF--------------------------------------------------------------------------------
+ev_gf=function(x)
+  {
+zz=ev_par_es(x)
+#------------------------------------------------------------
+#MLE
+gofMLE_ks = ks.test(x = x, y= "pgamma", shape=zz[1,1],scale=zz[2,1])
+gofMLE_AD = ad.test(x = x, null= "pgamma", shape=zz[1,1],scale=zz[2,1])
+gofMLE_cvm=cvm.test(x = x, null= "pgamma", shape=zz[1,1],scale=zz[2,1])
+Re_MLE1=cbind(gofMLE_ks$statistic,gofMLE_AD$statistic,gofMLE_cvm$statistic)
+Re_MLE2=cbind(gofMLE_ks$p.value,gofMLE_AD$p.value,gofMLE_cvm$p.value)
+Re_MLE=rbind(Re_MLE1,Re_MLE2)
+#MOM
+gofMOM_ks = ks.test(x = x, y= "pgamma", shape=zz[1,2],scale=zz[2,2])
+gofMOM_AD = ad.test(x = x, null= "pgamma", shape=zz[1,2],scale=zz[2,2])
+gofMOM_cvm=cvm.test(x = x, null= "pgamma", shape=zz[1,2],scale=zz[2,2])
+Re_MOM1=cbind(gofMOM_ks$statistic,gofMOM_AD$statistic,gofMOM_cvm$statistic)
+Re_MOM2=cbind(gofMOM_ks$p.value,gofMOM_AD$p.value,gofMOM_cvm$p.value)
+Re_MOM=rbind(Re_MOM1,Re_MOM2)
+#MGE 3 methods
+gofMGEKS_ks = ks.test(x = x, y= "pgamma", shape=zz[1,3],scale=zz[2,3])
+gofMGEKS_AD = ad.test(x = x, null= "pgamma", shape=zz[1,3],scale=zz[2,3])
+gofMGEKS_cvm=cvm.test(x = x, null= "pgamma", shape=zz[1,3],scale=zz[2,3])
+Re_MGEKS1=cbind(gofMGEKS_ks$statistic,gofMGEKS_AD$statistic,gofMGEKS_cvm$statistic)
+Re_MGEKS2=cbind(gofMGEKS_ks$p.value,gofMGEKS_AD$p.value,gofMGEKS_cvm$p.value)
+Re_MGEKS=rbind(Re_MGEKS1,Re_MGEKS2)
+
+gofMGEAD_ks = ks.test(x = x, y= "pgamma", shape=zz[1,4],scale=zz[2,4])
+gofMGEAD_AD = ad.test(x = x, null= "pgamma", shape=zz[1,4],scale=zz[2,4])
+gofMGEAD_cvm=cvm.test(x = x, null= "pgamma", shape=zz[1,4],scale=zz[2,4])
+Re_MGEAD1=cbind(gofMGEAD_ks$statistic,gofMGEAD_AD$statistic,gofMGEAD_cvm$statistic)
+Re_MGEAD2=cbind(gofMGEAD_ks$p.value,gofMGEAD_AD$p.value,gofMGEAD_cvm$p.value)
+Re_MGEAD=rbind(Re_MGEAD1,Re_MGEAD2)
+
+gofMGECVM_ks = ks.test(x = x, y= "pgamma", shape=zz[1,5],scale=zz[2,5])
+gofMGECVM_AD = ad.test(x = x, null= "pgamma", shape=zz[1,5],scale=zz[2,5])
+gofMGECVM_cvm=cvm.test(x = x, null= "pgamma", shape=zz[1,5],scale=zz[2,5])
+Re_MGECVM1=cbind(gofMGECVM_ks$statistic,gofMGECVM_AD$statistic,gofMGECVM_cvm$statistic)
+Re_MGECVM2=cbind(gofMGECVM_ks$p.value,gofMGECVM_AD$p.value,gofMGECVM_cvm$p.value)
+Re_MGECVM=rbind(Re_MGECVM1,Re_MGECVM2)
+#----------------------
+#RESULTS_GF
+Fin_res_GF=cbind(Re_MOM,Re_MLE,Re_MGEKS,Re_MGEAD,Re_MGECVM)
+colnames(Fin_res_GF)=c("MOMKS","MOMAD","MOMCVM","MLEKS","MLEAD","MLECVM","MGEKS-KS","MGEKS-AD","MGEKS-CVM","MGEAD-KS","MGEAD-AD","MGEAD-CVM","MGECVM-KS","MGECVM-AD","MGECVM-CVM")
+rownames(Fin_res_GF)=c("Estimate","p-value")
+round(Fin_res_GF,4)
+}
+```
+
+
+**Point estimates of five approaches and results of tests of goodness of fit are provided below**
+```{r, echo=FALSE,message=FALSE, warning=FALSE}
+#----------------------------------------
+x<-c(44,	5,	17,	64,	58,	1,	52,	4,	277,	52,	7,	16,	6,	96,	51,	44,	19,	18,	83,	28,	167,	43,	12,	26,	64,	375,	14,	1,	50,	3,	40,	91,	2,	147,	65,	9,	88,	43,	24,	14,	65,	1,	53,	48,	6,	54,	21,	87,	145,	152,	20,	179,	35,	40,	74,	26,	44,	2,	1,	2,	2,	9,	78,	132,	83,	78,	14,	19,	19,	45,	103,	30,	1,	4,	1,	115,	3,	37,	15,	1,	36,	37,	55,	17,	42,	47,	93,	30,	31,	13,	89,	11,	7,	4,	39,	51,	79,	4,	33,	68,	14,	62,	3,	213,	8,	153,	100,	7,	24,	1,	67,	75,	50,	6,	5,	13,	112,	4,	2,	1,	47,	1,	4,	1,	17,	182,	39,	16,	1,	35,	28,	47,	45,	12,	1,	83,	8,	19,	91,	81,	14,	178,	40,	74,	45,	221,	130,	1,	52,	47,	55,	4,	9,	35,	28,	73,	48,	26,	110,	91,	122,	14,	42,	68,	60,	209,	10,	80,	29,	1,	191,	1,	202,	5,	72,	11,	115,	86,	34,	6,	23,	1,	1,	8,	36,	33,	400,	53,	120,	11,	44,	95,	13,	1,	7,	79,	15,	196,	4,	176,	13,	4,	130,	48,	153,	1,	5,	36,	30,	14,	13,	45,	226,	17,	5,	1,	1,	1,	83,	18,	1,	7,	120,	10,	19,	26,	11,	61,	122,	216,	1,	49)
+#-----------------------------------------------------------------------------------
+par_es=ev_par_es(x)
+gf_res=ev_gf(x)
+par_es
+gf_res
+```
+
+
+
+**Corresponding plots are**
+```{r, echo=FALSE,message=FALSE, warning=FALSE}
+L0=c(1:5)
+L01=c("MOM","MLE","MGEKS","MGEAD","MGECVM")
+par(mfrow=c(1,2))
+plot(c(par_es[1,1],par_es[1,2],par_es[1,3],par_es[1,4],par_es[1,5]),xaxt="n",xlab="Shape",type = "l",ylab = "Parameter Estimation")
+axis(1, at = L0, labels = L01,cex.axis=0.5)
+plot(c(par_es[2,1],par_es[2,2],par_es[2,3],par_es[2,4],par_es[2,5]),xaxt="n",xlab="Scale",type = "l",ylab = "Parameter Estimation")
+axis(1, at = L0, labels = L01,cex.axis=0.5)
+
+
+gf_res1=gf_res[1,];gf_res2=gf_res[2,]
+L1=c(1:15)
+L=c("MMKS","MMAD","MMCVM","MLKS","MLAD","MLCVM","MGKSKS","MGKSAD","MGKSCVM","MGADKS","MGADAD","MGADCVM","MGCVMKS","MGCVMAD","MGCVMCVM")
+par(mfrow=c(2,1))
+plot(gf_res1,xaxt="n",xlab="Methods",type = "l",ylab = "Test Statistic")
+axis(1, at = L1, labels = L,cex.axis=0.5)
+plot(gf_res2,xaxt="n",xlab="Methods",type = "l",ylab = "p-value")
+abline(h=0.05,lty=2)
+axis(1, at = L1, labels = L,cex.axis=0.5)
+```
+
+
+#Explanation
+The different behaviour of AD method can be seen from the plot. Yet, there may not be any difference as far the decision is concerned. The hypothesis of Gamma fit cannot be rejected  
+
+
+
